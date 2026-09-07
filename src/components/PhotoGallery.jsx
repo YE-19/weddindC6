@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react';
+import p1 from '../assets/p1.jpg';
+import p2 from '../assets/p2.jpg';
+import p3 from '../assets/p3.jpg';
 
 export default function PhotoGallery({ gallery = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-  const photos = gallery.length > 0 ? gallery : [
-    { id: 1, src: '/src/assets/p3.jpg', title: 'Menna & Abdelrahman' },
-    { id: 2, src: '/src/assets/p1.jpg', title: 'Abdelrahman' },
-    { id: 3, src: '/src/assets/p2.jpg', title: 'Menna' },
+  const defaultPhotos = [
+    { id: 1, src: p3, title: 'Menna & Abdelrahman' },
+    { id: 2, src: p1, title: 'Abdelrahman' },
+    { id: 3, src: p2, title: 'Menna' },
   ];
+
+  const photos = gallery && gallery.length > 0 ? gallery : defaultPhotos;
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % photos.length);

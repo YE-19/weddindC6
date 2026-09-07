@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Share2, Check, Maximize2, X } from 'lucide-react';
 import { BotanicalBranch, WheatFlowers, GoldWaxSeal, WashiTape } from './FloralElements';
+import defaultCouplePhoto from '../assets/p3.jpg';
 
 export default function Announcement({ couple, onReopenCover }) {
   const [copied, setCopied] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   // Polaroid couple photo
-  const couplePhoto = couple?.coverPhoto || couple?.gallery?.[0]?.src || '/src/assets/p3.jpg';
+  const couplePhoto = couple?.coverPhoto || couple?.gallery?.[0]?.src || defaultCouplePhoto;
 
   const handleShare = async () => {
     const shareData = {

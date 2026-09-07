@@ -10,12 +10,14 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Radio,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
   listenToWishes,
   addWish,
   likeWish,
+  getDatabaseStatus,
 } from '../services/firebase';
 
 export default function Guestbook() {
@@ -25,6 +27,7 @@ export default function Guestbook() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [dbStatus, setDbStatus] = useState({ isCloud: false });
   const [likedMap, setLikedMap] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('wedding_liked_wishes') || '{}');
@@ -32,6 +35,11 @@ export default function Guestbook() {
       return {};
     }
   });
+
+  // Check DB status on mount
+  useEffect(() => {
+    setDbStatus(getDatabaseStatus());
+  }, []);
 
   // Subscribe to real-time wishes from Firebase / local storage
   useEffect(() => {
@@ -65,8 +73,8 @@ export default function Guestbook() {
       // Confetti celebration
       try {
         confetti({
-          particleCount: 60,
-          spread: 80,
+          particleCount: 65,
+          spread: 85,
           origin: { y: 0.65 },
           colors: ['#C5A880', '#6D5D50', '#E5D5BA', '#D4AF37'],
         });
@@ -140,6 +148,7 @@ export default function Guestbook() {
             <input
               type="text"
               required
+              maxLength={60}
               placeholder="الاسم الكريم"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -154,6 +163,7 @@ export default function Guestbook() {
             <textarea
               required
               rows={3}
+              maxLength={350}
               placeholder="اكتب تهنئتك للعروسين..."
               value={wishes}
               onChange={(e) => setWishes(e.target.value)}
@@ -171,7 +181,7 @@ export default function Guestbook() {
             {isSubmitting ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>جاري الإرسال...</span>
+                <span>جاري الحفظ والمشاركة...</span>
               </>
             ) : (
               <>
@@ -192,9 +202,18 @@ export default function Guestbook() {
               تهاني ومباركات الضيوف
             </h3>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-[#E8DEC8]/60 text-[#6D5D50] text-[11px] font-medium font-alexandria border border-[#DACBB8]">
-            {wishesList.length} {wishesList.length === 1 ? 'تهنئة' : 'تهاني'}
-          </span>
+
+          <div className="flex items-center gap-1.5">
+            {dbStatus.isCloud && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-medium font-alexandria border border-emerald-600/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                مباشر
+              </span>
+            )}
+            <span className="px-2.5 py-0.5 rounded-full bg-[#E8DEC8]/60 text-[#6D5D50] text-[11px] font-medium font-alexandria border border-[#DACBB8]">
+              {wishesList.length} {wishesList.length === 1 ? 'تهنئة' : 'تهاني'}
+            </span>
+          </div>
         </div>
 
         {/* Wishes List */}
@@ -234,7 +253,7 @@ export default function Guestbook() {
                           </h4>
                           <div className="flex items-center gap-1 text-[10px] text-[#A49486] font-alexandria mt-0.5">
                             <Clock className="w-2.5 h-2.5" />
-                            <span>{item.timestamp || 'مؤخراً'}</span>
+                            <span>{item.timestamp || 'الآن'}</span>
                           </div>
                         </div>
                       </div>

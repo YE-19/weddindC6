@@ -20,6 +20,7 @@ export const invitationConfig = {
     primaryArabic: "عبد الرحمن ومنة الله",
     initials: "M & A",
     monogram: "MA",
+    coverPhoto: p3,
     
     eventTitle: "THE WEDDING OF",
     partyHeader: "معلومات الحفل",

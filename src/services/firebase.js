@@ -14,14 +14,14 @@ import {
 } from 'firebase/firestore';
 import { invitationConfig } from '../data/invitationData';
 
-// Firebase configuration loaded from Vite environment variables or hardcoded values
+// Firebase configuration loaded from Vite environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim() || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim() || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim() || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim() || '',
 };
 
 // Check if valid Firebase configuration is present
@@ -29,7 +29,8 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
   firebaseConfig.projectId &&
   !firebaseConfig.apiKey.includes('YOUR_') &&
-  !firebaseConfig.projectId.includes('YOUR_')
+  !firebaseConfig.projectId.includes('YOUR_') &&
+  firebaseConfig.apiKey.length > 5
 );
 
 let app = null;
@@ -39,15 +40,26 @@ if (isFirebaseConfigured) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     db = getFirestore(app);
+    console.info(`%c[Firebase]%c Connected to Cloud Firestore project: ${firebaseConfig.projectId}`, 'color:#C5A880;font-weight:bold', 'color:#6D5D50');
   } catch (error) {
-    console.warn('Firebase initialization warning:', error);
+    console.warn('[Firebase] Initialization warning:', error);
     db = null;
   }
+} else {
+  console.info('%c[Firebase]%c Running in Local Mode. To sync wishes live for all users, add Firebase credentials in .env', 'color:#C5A880;font-weight:bold', 'color:#7D6E62');
 }
+
+/**
+ * Returns current database connection status
+ */
+export const getDatabaseStatus = () => ({
+  isCloud: Boolean(db),
+  projectId: firebaseConfig.projectId || null,
+});
 
 const LOCAL_STORAGE_KEY = 'wedding_guestbook_wishes';
 
-// Local storage helper
+// Local storage helpers (fallback)
 const getLocalWishes = () => {
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -71,14 +83,14 @@ const saveLocalWishes = (wishes) => {
 
 /**
  * Real-time listener for wishes
- * @param {Function} callback - Called with array of wishes whenever data changes
+ * @param {Function} callback - Called with array of wishes whenever data changes in the cloud
  * @returns {Function} Unsubscribe function
  */
 export const listenToWishes = (callback) => {
   if (db) {
     try {
       const wishesRef = collection(db, 'wishes');
-      const q = query(wishesRef, orderBy('createdAt', 'desc'), limit(100));
+      const q = query(wishesRef, orderBy('createdAt', 'desc'), limit(150));
 
       const unsubscribe = onSnapshot(
         q,
@@ -86,9 +98,12 @@ export const listenToWishes = (callback) => {
           const wishes = snapshot.docs.map((docSnap) => {
             const data = docSnap.data();
             let timestamp = 'الآن';
-            if (data.createdAt && data.createdAt.toDate) {
+            
+            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
               const date = data.createdAt.toDate();
               timestamp = formatRelativeTime(date);
+            } else if (data.createdAt instanceof Date) {
+              timestamp = formatRelativeTime(data.createdAt);
             } else if (data.timestamp) {
               timestamp = data.timestamp;
             }
@@ -103,7 +118,7 @@ export const listenToWishes = (callback) => {
             };
           });
 
-          // If no wishes in Firestore yet, provide initial wishes as fallback
+          // If no wishes in Firestore yet, provide initial wishes as starter
           if (wishes.length === 0 && invitationConfig.initialWishes?.length > 0) {
             callback(invitationConfig.initialWishes);
           } else {
@@ -111,14 +126,14 @@ export const listenToWishes = (callback) => {
           }
         },
         (error) => {
-          console.warn('Firestore snapshot error, falling back to local data:', error);
+          console.warn('[Firebase] Firestore snapshot listener error (check security rules):', error);
           callback(getLocalWishes());
         }
       );
 
       return unsubscribe;
     } catch (err) {
-      console.warn('Firestore subscription failed, using local storage:', err);
+      console.warn('[Firebase] Firestore subscription failed, falling back to local:', err);
     }
   }
 
@@ -143,20 +158,20 @@ export const addWish = async ({ name, wishes }) => {
   const trimmedName = name.trim();
   const trimmedWishes = wishes.trim();
 
-  if (!trimmedName || !trimmedWishes) return;
+  if (!trimmedName || !trimmedWishes) return { success: false };
 
   if (db) {
     try {
       const wishesRef = collection(db, 'wishes');
-      await addDoc(wishesRef, {
+      const docRef = await addDoc(wishesRef, {
         name: trimmedName,
         wishes: trimmedWishes,
         likes: 0,
         createdAt: serverTimestamp(),
       });
-      return { success: true, mode: 'cloud' };
+      return { success: true, mode: 'cloud', id: docRef.id };
     } catch (err) {
-      console.warn('Failed to add wish to Firestore, saving locally:', err);
+      console.warn('[Firebase] Failed to write wish to Firestore (check security rules), falling back to local:', err);
     }
   }
 
@@ -170,7 +185,7 @@ export const addWish = async ({ name, wishes }) => {
     timestamp: 'الآن',
   };
   saveLocalWishes([newWish, ...current]);
-  return { success: true, mode: 'local' };
+  return { success: true, mode: 'local', id: newWish.id };
 };
 
 /**
@@ -186,11 +201,11 @@ export const likeWish = async (wishId) => {
       });
       return;
     } catch (err) {
-      console.warn('Failed to like wish on Firestore:', err);
+      console.warn('[Firebase] Failed to increment like on Firestore:', err);
     }
   }
 
-  // Local storage like update
+  // Local storage like update fallback
   const current = getLocalWishes();
   const updated = current.map((w) => {
     if (w.id === wishId) {
@@ -202,18 +217,31 @@ export const likeWish = async (wishId) => {
 };
 
 // Helper for Arabic relative time formatting
-function formatRelativeTime(date) {
+export function formatRelativeTime(date) {
   try {
+    if (!date) return 'الآن';
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
-    if (diffInSeconds < 60) return 'الآن';
+    if (diffInSeconds < 45) return 'الآن';
     const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) return `منذ ${diffInMinutes} دقيقة`;
+    if (diffInMinutes < 60) {
+      if (diffInMinutes === 1) return 'منذ دقيقة';
+      if (diffInMinutes === 2) return 'منذ دقيقتين';
+      if (diffInMinutes <= 10) return `منذ ${diffInMinutes} دقائق`;
+      return `منذ ${diffInMinutes} دقيقة`;
+    }
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `منذ ${diffInHours} ساعة`;
+    if (diffInHours < 24) {
+      if (diffInHours === 1) return 'منذ ساعة';
+      if (diffInHours === 2) return 'منذ ساعتين';
+      if (diffInHours <= 10) return `منذ ${diffInHours} ساعات`;
+      return `منذ ${diffInHours} ساعة`;
+    }
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays === 1) return 'أمس';
+    if (diffInDays === 2) return 'منذ يومين';
+    if (diffInDays <= 10) return `منذ ${diffInDays} أيام`;
     if (diffInDays < 30) return `منذ ${diffInDays} يوم`;
 
     return date.toLocaleDateString('ar-EG', {
