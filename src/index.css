@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --font-cormorant: "Cormorant Garamond", Georgia, serif;
+  --font-amiri: "Amiri", serif;
+  --font-alexandria: "Alexandria", sans-serif;
+  --font-cairo: "Cairo", sans-serif;
+  --font-tajawal: "Tajawal", sans-serif;
+  --font-script: "Alex Brush", "Pinyon Script", "Great Vibes", cursive;
+  --font-pinyon: "Pinyon Script", cursive;
+  --font-alex: "Alex Brush", cursive;
+  --font-sans: "Alexandria", "Montserrat", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Warm Beige & Mocha Palette ("البساطة - بي") */
+  --color-warm-canvas: #F7F3EE;
+  --color-card-beige: #EFE8DE;
+  --color-card-beige-dark: #E5DCCE;
+  --color-mocha: #6D5D50;
+  --color-mocha-dark: #4A3E35;
+  --color-mocha-light: #877669;
+  --color-gold: #C5A880;
+  --color-gold-light: #E5D5BA;
+  --color-text-main: #55473C;
+  --color-text-muted: #877669;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F7F3EE;
+  color: #55473C;
+  font-family: var(--font-alexandria), var(--font-serif), sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Classes */
+.font-serif {
+  font-family: var(--font-serif);
+}
+.font-cormorant {
+  font-family: var(--font-cormorant);
+}
+.font-amiri {
+  font-family: var(--font-amiri);
+}
+.font-alexandria {
+  font-family: var(--font-alexandria);
+}
+.font-cairo {
+  font-family: var(--font-cairo);
+}
+.font-tajawal {
+  font-family: var(--font-tajawal);
+}
+.font-script {
+  font-family: var(--font-script);
+}
+.font-pinyon {
+  font-family: var(--font-pinyon);
+}
+.font-alex {
+  font-family: var(--font-alex);
+}
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+/* Washi Tape Effect */
+.washi-tape {
+  background: rgba(223, 204, 169, 0.75);
+  box-shadow: 0 2px 6px rgba(100, 80, 60, 0.12);
+  backdrop-filter: blur(1px);
+  position: relative;
+}
+.washi-tape::before,
+.washi-tape::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+.washi-tape::before {
+  left: -2px;
+  background: radial-gradient(circle at left, transparent 2px, rgba(223, 204, 169, 0.75) 2.5px);
+}
+.washi-tape::after {
+  right: -2px;
+  background: radial-gradient(circle at right, transparent 2px, rgba(223, 204, 169, 0.75) 2.5px);
+}
+
+/* Paper Card Shadow */
+.paper-card {
+  background-color: #EFE8DE;
+  box-shadow: 0 8px 30px rgba(85, 71, 60, 0.07);
+}
+
+/* Custom Scrollbar in Mocha & Warm Gold */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F3EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #C5A880;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6D5D50;
+}
+
+/* Selection */
+::selection {
+  background: #6D5D50;
+  color: #FFFFFF;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+
