@@ -14,14 +14,14 @@ import {
 } from 'firebase/firestore';
 import { invitationConfig } from '../data/invitationData';
 
-// Firebase configuration loaded from Vite environment variables
+// Firebase configuration with environment variables and project defaults
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim() || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim() || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim() || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim() || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim() || "AIzaSyBOuvfHBpNpYkm_1nshEsHXAmwYaxPHdaw",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim() || "wedding-51631.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() || "wedding-51631",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim() || "wedding-51631.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || "93945374057",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim() || "1:93945374057:web:a417f4281ee656307449f8",
 };
 
 // Check if valid Firebase configuration is present
@@ -45,8 +45,6 @@ if (isFirebaseConfigured) {
     console.warn('[Firebase] Initialization warning:', error);
     db = null;
   }
-} else {
-  console.info('%c[Firebase]%c Running in Local Mode. To sync wishes live for all users, add Firebase credentials in .env', 'color:#C5A880;font-weight:bold', 'color:#7D6E62');
 }
 
 /**
@@ -59,7 +57,7 @@ export const getDatabaseStatus = () => ({
 
 const LOCAL_STORAGE_KEY = 'wedding_guestbook_wishes';
 
-// Local storage helpers (fallback)
+// Local storage helpers (fallback if offline)
 const getLocalWishes = () => {
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -82,7 +80,7 @@ const saveLocalWishes = (wishes) => {
 };
 
 /**
- * Real-time listener for wishes
+ * Real-time listener for wishes across all connected devices
  * @param {Function} callback - Called with array of wishes whenever data changes in the cloud
  * @returns {Function} Unsubscribe function
  */
@@ -126,18 +124,18 @@ export const listenToWishes = (callback) => {
           }
         },
         (error) => {
-          console.warn('[Firebase] Firestore snapshot listener error (check security rules):', error);
+          console.warn('[Firebase] Firestore snapshot listener warning (make sure Firestore database is enabled in Firebase console):', error);
           callback(getLocalWishes());
         }
       );
 
       return unsubscribe;
     } catch (err) {
-      console.warn('[Firebase] Firestore subscription failed, falling back to local:', err);
+      console.warn('[Firebase] Firestore subscription failed, using local storage:', err);
     }
   }
 
-  // Fallback to local storage and custom events
+  // Fallback to local storage
   callback(getLocalWishes());
 
   const handleUpdate = (e) => {
@@ -151,7 +149,7 @@ export const listenToWishes = (callback) => {
 };
 
 /**
- * Send a new wish to Firestore or local storage
+ * Send a new wish to Firestore in real-time
  * @param {{ name: string, wishes: string }} wishData
  */
 export const addWish = async ({ name, wishes }) => {
@@ -171,7 +169,7 @@ export const addWish = async ({ name, wishes }) => {
       });
       return { success: true, mode: 'cloud', id: docRef.id };
     } catch (err) {
-      console.warn('[Firebase] Failed to write wish to Firestore (check security rules), falling back to local:', err);
+      console.warn('[Firebase] Failed to write wish to Firestore (make sure Firestore rules allow read/write):', err);
     }
   }
 
@@ -189,7 +187,7 @@ export const addWish = async ({ name, wishes }) => {
 };
 
 /**
- * Increment like counter on a wish
+ * Increment like counter on a wish across all devices
  * @param {string} wishId
  */
 export const likeWish = async (wishId) => {
