@@ -124,7 +124,7 @@ export const listenToWishes = (callback) => {
           }
         },
         (error) => {
-          console.warn('[Firebase] Firestore snapshot listener warning (make sure Firestore database is enabled in Firebase console):', error);
+          console.warn('[Firebase] Snapshot listener note (make sure Firestore is created & rules published):', error);
           callback(getLocalWishes());
         }
       );
@@ -149,7 +149,7 @@ export const listenToWishes = (callback) => {
 };
 
 /**
- * Send a new wish to Firestore in real-time
+ * Send a new wish to Firestore in real-time with automatic timeout protection
  * @param {{ name: string, wishes: string }} wishData
  */
 export const addWish = async ({ name, wishes }) => {
@@ -161,19 +161,27 @@ export const addWish = async ({ name, wishes }) => {
   if (db) {
     try {
       const wishesRef = collection(db, 'wishes');
-      const docRef = await addDoc(wishesRef, {
+      
+      // Add timeout so UI never hangs if Firestore is not yet activated in console
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Firebase timeout')), 3000)
+      );
+
+      const addDocPromise = addDoc(wishesRef, {
         name: trimmedName,
         wishes: trimmedWishes,
         likes: 0,
         createdAt: serverTimestamp(),
       });
+
+      const docRef = await Promise.race([addDocPromise, timeoutPromise]);
       return { success: true, mode: 'cloud', id: docRef.id };
     } catch (err) {
-      console.warn('[Firebase] Failed to write wish to Firestore (make sure Firestore rules allow read/write):', err);
+      console.warn('[Firebase] Firestore write failed or timed out (Please create Firestore Database in console):', err);
     }
   }
 
-  // Fallback to LocalStorage
+  // Fallback to LocalStorage immediately so button never hangs
   const current = getLocalWishes();
   const newWish = {
     id: 'w-' + Date.now(),
