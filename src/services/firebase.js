@@ -67,7 +67,7 @@ const getLocalWishes = () => {
   } catch (e) {
     console.error('Error reading local wishes:', e);
   }
-  return invitationConfig.initialWishes || [];
+  return [];
 };
 
 const saveLocalWishes = (wishes) => {
@@ -116,12 +116,7 @@ export const listenToWishes = (callback) => {
             };
           });
 
-          // If no wishes in Firestore yet, provide initial wishes as starter
-          if (wishes.length === 0 && invitationConfig.initialWishes?.length > 0) {
-            callback(invitationConfig.initialWishes);
-          } else {
-            callback(wishes);
-          }
+          callback(wishes);
         },
         (error) => {
           console.warn('[Firebase] Snapshot listener note (make sure Firestore is created & rules published):', error);
